@@ -1,0 +1,60 @@
+import { ProcessStep } from '../types';
+
+export const PROCESS_STEPS: ProcessStep[] = [
+  {
+    step: '01',
+    title: 'Discovery & Vision Alignment',
+    tagline: '1-on-1 strategic deep-dive with Mr Deepak',
+    description: 'We begin with an in-depth consultation directly with Mr Deepak to unpack your business model, customer psychology, competitive advantages, brand voice, and commercial targets. No junior intermediaries—only strategic clarity.',
+    deliverables: ['1-on-1 Strategy Consultation', 'Competitive Landscape Matrix', 'Brand Visual Toneboard', 'Clear Scope & KPI Agreement'],
+    timeline: 'Days 1–4',
+  },
+  {
+    step: '02',
+    title: 'Architecture & UX Wireframing',
+    tagline: 'Sitemap structure, content hierarchy and conversion pathways',
+    description: 'Mr Deepak architects the entire site taxonomy, user flow journeys, high-converting content layouts, technical stack decisions, and structured SEO foundations before a single line of code is written.',
+    deliverables: ['Information Architecture Map', 'Interactive Wireframe Layouts', 'Content Flow & Copy Strategy', 'SEO & Schema.org Blueprint'],
+    timeline: 'Days 5–8',
+  },
+  {
+    step: '03',
+    title: 'Bespoke UI/UX & 3D Visual Craft',
+    tagline: 'High-craft visual design with tactile micro-interactions',
+    description: 'Translating strategic insights into high-craft design. Mr Deepak crafts custom typography scales, dark obsidian aesthetics, subtle 3D spatial elements, and complete pixel-perfect desktop and mobile layouts.',
+    deliverables: ['High-Fidelity Interactive Mockups', 'Custom 3D / WebGL Concepts', 'Design Token & Component System', 'Mobile Responsive Layouts'],
+    timeline: 'Days 9–16',
+  },
+  {
+    step: '04',
+    title: 'Full-Stack Engineering',
+    tagline: '100% custom React, TypeScript, Node.js & Supabase development',
+    description: 'Mr Deepak personally engineers the entire application with modern production technologies: React 19, TypeScript, Tailwind CSS, Node.js, and Supabase PostgreSQL. Zero bloated site builders or slow plugins—pure, maintainable code.',
+    deliverables: ['Clean Modular Codebase', 'Backend API & Lead System', 'Supabase Database & Auth Setup', 'Smooth WebGL & Framer Motion'],
+    timeline: 'Days 17–26',
+  },
+  {
+    step: '05',
+    title: 'Performance QA & Multi-Device Testing',
+    tagline: 'Lighthouse 98+ audit, cross-browser and security verification',
+    description: 'Rigorous multi-device quality assurance testing across iOS Safari, Chrome, Firefox, and Android. Mr Deepak verifies sub-second load times, form validation, anti-spam protections, accessibility, and database security rules.',
+    deliverables: ['98+ Lighthouse Speed Score', 'Cross-Browser QA Signoff', 'Form Validation & Anti-Spam Check', 'Supabase Security & RLS Audit'],
+    timeline: 'Days 27–31',
+  },
+  {
+    step: '06',
+    title: 'Production Deployment & Launch',
+    tagline: 'Edge CDN deployment, custom domain setup and Google indexing',
+    description: 'Configuring continuous deployment through GitHub to Netlify edge infrastructure, provisioning SSL certificates, setting environment variables, and wiring up custom domains with Google Search Console verification.',
+    deliverables: ['Production Edge CDN Deployment', 'SSL / HTTPS Security Live', 'Google Search Console & Sitemap', 'Custom Domain DNS Routing'],
+    timeline: 'Days 32–34',
+  },
+  {
+    step: '07',
+    title: 'VIP Handover & Founder Support',
+    tagline: 'Full source code ownership, video guide and 30 days of direct support',
+    description: 'Mr Deepak delivers personal video walkthrough recordings, documentation, complete Git repository access, and 30 days of direct priority WhatsApp/Email post-launch support to ensure total confidence.',
+    deliverables: ['100% Source Code & Asset Ownership', 'Personal Video Walkthrough Guide', 'Admin Portal Credentials', '30-Day Direct Support from Mr Deepak'],
+    timeline: 'Days 35+',
+  },
+];

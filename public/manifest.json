@@ -1,0 +1,18 @@
+{
+  "id": "/",
+  "name": "Mr Deepak – Premium Web Studio",
+  "short_name": "Mr Deepak",
+  "description": "Bespoke, high-performance websites engineered by Mr Deepak with sub-second speeds and custom React architecture.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050608",
+  "theme_color": "#070a14",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

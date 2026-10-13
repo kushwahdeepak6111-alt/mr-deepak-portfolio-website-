@@ -35,25 +35,29 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Real-time calculation in Indian Rupees (INR) starting from ₹5,000
-  let basePrice = 5000;
+  // Real-time calculation in Indian Rupees (INR) starting from ₹4,999
+  let basePrice = 4999;
   let weeksMin = 1;
   let weeksMax = 2;
 
   if (projectType === 'landing') {
-    basePrice = 5000;
+    // Basic Website tier: ₹4,999 - ₹9,999
+    basePrice = 4999 + Math.max(0, pageCount - 2) * 1500;
     weeksMin = 1;
     weeksMax = 1;
   } else if (projectType === 'business') {
-    basePrice = 12000 + Math.max(0, pageCount - 5) * 1500;
+    // Standard / Professional Website tier: starts from ₹9,999 / ₹14,999
+    basePrice = 9999 + Math.max(0, pageCount - 4) * 1500;
     weeksMin = 1;
     weeksMax = 2;
   } else if (projectType === 'portfolio') {
-    basePrice = 7500 + Math.max(0, pageCount - 4) * 1000;
+    // Standard / Professional portfolio
+    basePrice = 7999 + Math.max(0, pageCount - 3) * 1200;
     weeksMin = 1;
     weeksMax = 2;
   } else if (projectType === 'webapp') {
-    basePrice = 28000 + Math.max(0, pageCount - 6) * 2000;
+    // Advanced / Custom Web App: ₹19,999 - ₹29,999+
+    basePrice = 24999 + Math.max(0, pageCount - 6) * 2000;
     weeksMin = 2;
     weeksMax = 4;
   }
@@ -78,10 +82,12 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
       .filter(Boolean)
       .join(', ');
 
-    let budgetBand = '₹5,000 - ₹15,000';
-    if (estimatedTotal > 75000) budgetBand = '₹75,000+';
-    else if (estimatedTotal > 35000) budgetBand = '₹35,000 - ₹75,000';
-    else if (estimatedTotal > 15000) budgetBand = '₹15,000 - ₹35,000';
+    let budgetBand = '₹4,999 - ₹9,999';
+    if (estimatedTotal > 29999) budgetBand = '₹29,999+';
+    else if (estimatedTotal > 24999) budgetBand = '₹24,999 - ₹29,999';
+    else if (estimatedTotal > 19999) budgetBand = '₹19,999 - ₹24,999';
+    else if (estimatedTotal > 14999) budgetBand = '₹14,999 - ₹19,999';
+    else if (estimatedTotal > 9999) budgetBand = '₹9,999 - ₹14,999';
 
     onApplyScopeToContact({
       projectType: projectType === 'webapp' ? 'Custom Web Applications' : 'Business Websites',
@@ -239,6 +245,9 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
               </div>
               <span className="text-xs text-neutral-400 font-sans mt-0.5 block">
                 Estimated Delivery: {weeksMin}–{weeksMax} Weeks
+              </span>
+              <span className="text-[11px] text-cyan-400 font-sans mt-1.5 block">
+                ✦ Real price is decided based on your exact requirements and added features.
               </span>
             </div>
 

@@ -77,14 +77,14 @@ export const DeveloperAboutSection: React.FC<DeveloperAboutSectionProps> = ({
           <div className="lg:col-span-5 card-luxury rounded-2xl p-6 sm:p-8 relative">
             {/* Developer Portrait Image Showcase */}
             <div className="relative mb-6 rounded-2xl overflow-hidden border border-cyan-500/30 bg-neutral-900/90 shadow-2xl group">
-              <div className="aspect-[4/3] sm:aspect-[16/11] relative overflow-hidden bg-neutral-950">
+              <div className="aspect-[3/4] sm:aspect-[4/5] relative overflow-hidden bg-neutral-950">
                 <img
                   src={deepakPortrait}
                   alt="Mr Deepak - Lead Web Architect & Developer"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/20 to-transparent opacity-85" />
+                <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/90 via-transparent to-transparent pointer-events-none" />
 
                 {/* Floating Badges */}
                 <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">

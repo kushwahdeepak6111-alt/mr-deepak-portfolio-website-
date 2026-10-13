@@ -14,8 +14,10 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { ProjectModal } from './components/ui/ProjectModal';
 import { QuoteCalculatorModal } from './components/ui/QuoteCalculatorModal';
 import { NetworkStatusBanner } from './components/ui/NetworkStatusBanner';
+import { NotificationPermissionBanner } from './components/ui/NotificationPermissionBanner';
 import { BackgroundLayer } from './components/layout/BackgroundLayer';
-import { BackgroundSwitcher } from './components/ui/BackgroundSwitcher';
+import { PullToRefresh } from './components/ui/PullToRefresh';
+import { WebsiteRefreshControl } from './components/ui/WebsiteRefreshControl';
 import { PROJECTS } from './data/projects';
 import { Project, BackgroundTheme } from './types';
 
@@ -108,7 +110,7 @@ export default function App() {
     details: string;
   }>({
     projectType: 'Business Websites',
-    budget: '₹5,000 - ₹15,000',
+    budget: '₹4,999 - ₹9,999',
     details: '',
   });
 
@@ -133,6 +135,44 @@ export default function App() {
 
   // Instant High-Speed Page Transition & Top Loading Indicator
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Dedicated Website Refresh function with tactile feedback & quick reload
+  const handleWebsiteRefresh = () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setIsPageLoading(true);
+
+    try {
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        navigator.vibrate([25, 35]);
+      }
+    } catch {
+      // Ignore vibration error if not permitted
+    }
+
+    // Smooth visual feedback and top loading progress before browser reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 380);
+  };
+
+  // Keyboard shortcut for Website Refresh: Press 'R' when not typing
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = (document.activeElement?.tagName || '').toUpperCase();
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+
+      if (!isInput && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        handleWebsiteRefresh();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRefreshing]);
 
   const navigateTo = (pageId: string) => {
     setIsPageLoading(true);
@@ -149,7 +189,7 @@ export default function App() {
   const handleStartProjectWithTitle = (projectTitle: string) => {
     setContactPreset({
       projectType: 'Custom Website Design',
-      budget: '₹5,000 - ₹15,000',
+      budget: '₹4,999 - ₹9,999',
       details: `Referencing inspiration from case study: ${projectTitle}`,
     });
     navigateTo('contact');
@@ -162,7 +202,7 @@ export default function App() {
 
   const handleSelectPricingTier = (tierName: string, priceBand: string) => {
     setContactPreset({
-      projectType: (tierName.includes('Basic') || tierName.includes('Starter')) ? 'Custom Website Design' : 'Business Websites',
+      projectType: tierName.includes('Basic') ? 'Basic Website' : tierName.includes('Ecommerce') ? 'Ecommerce Websites' : 'Business Websites',
       budget: priceBand,
       details: `Selected Tier: ${tierName}`,
     });
@@ -180,18 +220,13 @@ export default function App() {
         }`}
       />
 
+      {/* Pull To Refresh Mobile Gesture */}
+      <PullToRefresh onRefresh={handleWebsiteRefresh} isRefreshing={isRefreshing} />
+
       {/* Dynamic Ambient Studio Background Layer */}
       <BackgroundLayer theme={bgTheme} showGrid={showBgGrid} />
 
-      {/* Interactive Background Theme Switcher */}
-      <BackgroundSwitcher
-        currentTheme={bgTheme}
-        showGrid={showBgGrid}
-        onSelectTheme={handleSelectBgTheme}
-        onToggleGrid={handleToggleBgGrid}
-      />
-
-      {/* Top Bar Contract Navigation */}
+      {/* Top Bar Contract Navigation with Integrated Themes Menu Settings */}
       <Navbar
         currentPage={currentPage}
         onNavigate={navigateTo}
@@ -200,7 +235,15 @@ export default function App() {
         onToggleDarkTheme={() => {
           handleSelectBgTheme(bgTheme === 'dark-theme' ? 'solar-system' : 'dark-theme');
         }}
+        onSelectBgTheme={handleSelectBgTheme}
+        showBgGrid={showBgGrid}
+        onToggleBgGrid={handleToggleBgGrid}
+        onRefresh={handleWebsiteRefresh}
+        isRefreshing={isRefreshing}
       />
+
+      {/* Real-time Phone & Browser Notification Opt-In Banner */}
+      <NotificationPermissionBanner />
 
       {/* Main Page View with Instant Responsive Animation */}
       <main className="flex-1 relative z-10">
@@ -227,7 +270,7 @@ export default function App() {
               onDiscussProject={(svc) => {
                 setContactPreset({
                   projectType: svc,
-                  budget: '₹5,000 - ₹15,000',
+                  budget: '₹4,999 - ₹9,999',
                   details: `Inquiring about specialized service: ${svc}`,
                 });
                 navigateTo('contact');
@@ -295,6 +338,8 @@ export default function App() {
       <Footer
         onNavigate={navigateTo}
         onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+        onRefresh={handleWebsiteRefresh}
+        isRefreshing={isRefreshing}
       />
 
       {/* Case Study Detail Modal */}
@@ -309,6 +354,12 @@ export default function App() {
         isOpen={isQuoteModalOpen}
         onClose={() => setIsQuoteModalOpen(false)}
         onApplyScopeToContact={handleApplyScope}
+      />
+
+      {/* Persistent Website Refresh & Quick Action Floating Button */}
+      <WebsiteRefreshControl
+        onRefresh={handleWebsiteRefresh}
+        isRefreshing={isRefreshing}
       />
 
       {/* Network Change & Offline Resilience Monitor */}

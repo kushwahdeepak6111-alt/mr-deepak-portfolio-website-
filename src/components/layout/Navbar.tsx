@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Menu, X, ArrowUpRight, ShieldCheck, Moon, Sun, Phone, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, X, ArrowUpRight, ShieldCheck, Moon, Sun, Phone, MessageSquare, Palette, ChevronDown, Check, Sparkles, Grid, RotateCw } from 'lucide-react';
 import { BackgroundTheme } from '../../types';
+import { THEME_OPTIONS } from '../ui/BackgroundSwitcher';
 
 interface NavbarProps {
   currentPage: string;
@@ -8,6 +9,11 @@ interface NavbarProps {
   onOpenQuoteModal: () => void;
   bgTheme?: BackgroundTheme;
   onToggleDarkTheme?: () => void;
+  onSelectBgTheme?: (theme: BackgroundTheme) => void;
+  showBgGrid?: boolean;
+  onToggleBgGrid?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 const NAV_ITEMS = [
@@ -26,9 +32,37 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQuoteModal,
   bgTheme,
   onToggleDarkTheme,
+  onSelectBgTheme,
+  showBgGrid,
+  onToggleBgGrid,
+  onRefresh,
+  isRefreshing,
 }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [mobileThemeExpanded, setMobileThemeExpanded] = useState(true);
+  const themeDropdownRef = useRef<HTMLDivElement>(null);
+
+  const activeThemeOption = THEME_OPTIONS.find((t) => t.id === bgTheme) || THEME_OPTIONS[0];
+
+  // Close desktop theme dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        themeDropdownRef.current &&
+        !themeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsThemeMenuOpen(false);
+      }
+    };
+    if (isThemeMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isThemeMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -121,6 +155,124 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Zone 3: Primary Action & Controls */}
             <div className="flex items-center gap-2 sm:gap-2.5">
+              {/* Themes Menu Setting Dropdown */}
+              <div className="relative" ref={themeDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsThemeMenuOpen(!isThemeMenuOpen)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-md border text-xs font-mono transition-all duration-100 active:scale-95 cursor-pointer ${
+                    isThemeMenuOpen
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.3)]'
+                      : 'bg-neutral-900/90 border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700 hover:bg-neutral-800'
+                  }`}
+                  title="Website Themes & Visual Settings"
+                  aria-label="Theme Settings Menu"
+                  aria-expanded={isThemeMenuOpen}
+                >
+                  <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline font-semibold">Themes</span>
+                  <span className="hidden xl:inline text-[10px] text-cyan-300/80 px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/60 ml-0.5">
+                    {activeThemeOption.name.split(' ')[0]}
+                  </span>
+                  <ChevronDown
+                    className={`w-3 h-3 text-neutral-400 transition-transform duration-150 ${
+                      isThemeMenuOpen ? 'rotate-180 text-cyan-300' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Desktop Theme Settings Dropdown Menu */}
+                {isThemeMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 rounded-xl bg-neutral-950/98 border border-white/15 p-3 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <div className="flex items-center justify-between pb-2.5 border-b border-white/10 mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                          <Sparkles className="w-3.5 h-3.5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-white tracking-wide">Themes Menu Setting</div>
+                          <div className="text-[10px] font-mono text-neutral-400">8 visual background presets</div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300">
+                        {activeThemeOption.badge}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 max-h-[340px] overflow-y-auto pr-1">
+                      {THEME_OPTIONS.map((theme) => {
+                        const isSelected = theme.id === bgTheme;
+                        return (
+                          <button
+                            key={theme.id}
+                            type="button"
+                            onClick={() => {
+                              if (onSelectBgTheme) {
+                                onSelectBgTheme(theme.id);
+                              }
+                              setIsThemeMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg border text-left transition-all duration-100 active:scale-[0.98] cursor-pointer ${
+                              isSelected
+                                ? 'bg-cyan-950/50 border-cyan-400/70 shadow-[0_0_12px_rgba(56,189,248,0.2)]'
+                                : 'bg-neutral-900/40 hover:bg-neutral-900 border-white/5 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <div className="w-5 h-5 rounded-md overflow-hidden border border-white/20 shrink-0 shadow-inner">
+                                <div
+                                  className="w-full h-full"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${theme.previewColors.join(', ')})`,
+                                  }}
+                                />
+                              </div>
+                              <div className="truncate">
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-medium truncate ${isSelected ? 'text-cyan-200 font-semibold' : 'text-neutral-200'}`}>
+                                    {theme.name}
+                                  </span>
+                                  <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-white/5 text-neutral-400 shrink-0">
+                                    {theme.badge}
+                                  </span>
+                                </div>
+                                <div className="text-[10px] text-neutral-400 truncate mt-0.5">
+                                  {theme.subtitle}
+                                </div>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Check className="w-3.5 h-3.5 text-cyan-400 shrink-0 ml-1.5" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Ambient Studio Grid Toggle */}
+                    {onToggleBgGrid && (
+                      <div className="pt-2.5 mt-2.5 border-t border-white/10 flex items-center justify-between px-1">
+                        <span className="text-[11px] font-mono text-neutral-400 flex items-center gap-1.5">
+                          <Grid className="w-3 h-3 text-cyan-400" />
+                          Ambient Grid
+                        </span>
+                        <button
+                          type="button"
+                          onClick={onToggleBgGrid}
+                          className={`text-[10px] font-mono px-2 py-0.5 rounded border transition-colors cursor-pointer active:scale-95 ${
+                            showBgGrid
+                              ? 'bg-cyan-950/80 border-cyan-800 text-cyan-300'
+                              : 'bg-neutral-900 border-neutral-700 text-neutral-400'
+                          }`}
+                        >
+                          {showBgGrid ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Dedicated Dark Theme Quick Toggle */}
               {onToggleDarkTheme && (
                 <button
@@ -158,21 +310,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="font-semibold">+91 9343795715</span>
               </a>
 
-              {/* Admin Panel Quick Entry Button */}
-              <button
-                onClick={() => handleNavClick('admin')}
-                className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-md border text-xs font-mono transition-all duration-100 active:scale-95 cursor-pointer ${
-                  currentPage === 'admin'
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.3)]'
-                    : 'bg-neutral-900/90 border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-700 hover:bg-neutral-800'
-                }`}
-                title="Open Studio Admin Panel"
-                aria-label="Admin Panel"
-              >
-                <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="hidden lg:inline">Admin</span>
-              </button>
-
               <button
                 onClick={onOpenQuoteModal}
                 className="hidden sm:inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-black bg-white hover:bg-neutral-200 hover:shadow-lg hover:shadow-cyan-500/20 active:scale-95 transition-all duration-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white whitespace-nowrap cursor-pointer shadow-md"
@@ -181,38 +318,70 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <ArrowUpRight className="w-3.5 h-3.5 text-black" />
               </button>
 
-              {/* Mobile Menu Toggle Button */}
+              {/* Menu Button on Right Side Corner Up */}
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-neutral-300 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md"
+                className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-2 rounded-md border text-xs font-mono transition-all duration-100 active:scale-95 cursor-pointer shadow-md backdrop-blur-md focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                  mobileMenuOpen
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(56,189,248,0.35)]'
+                    : 'bg-neutral-900/95 border-neutral-700 hover:border-cyan-400 text-neutral-200 hover:text-white hover:bg-neutral-800'
+                }`}
                 aria-expanded={mobileMenuOpen}
-                aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+                aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Navigation Menu'}
+                title="Website Menu & Navigation"
               >
                 {mobileMenuOpen ? (
-                  <X className="w-6 h-6" />
+                  <X className="w-4 h-4 text-cyan-400" />
                 ) : (
-                  <Menu className="w-6 h-6" />
+                  <Menu className="w-4 h-4 text-cyan-400" />
                 )}
+                <span className="font-semibold uppercase tracking-wider text-[11px]">Menu</span>
               </button>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Mobile Drawer Overlay */}
+      {/* Responsive Slide-Over Menu Drawer */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-xl md:hidden flex flex-col justify-between p-6 pt-24 animate-in fade-in duration-200 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex justify-end animate-in fade-in duration-200"
           onClick={() => setMobileMenuOpen(false)}
         >
           <div
-            className="flex flex-col gap-5"
+            className="w-full max-w-md h-full bg-neutral-950/98 border-l border-neutral-800/90 shadow-2xl p-6 sm:p-7 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="text-xs uppercase tracking-widest text-neutral-500 font-mono">
-              Menu Navigation
-            </div>
+            <div className="flex flex-col gap-5">
+              {/* Drawer Top Header with Close Button */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-neutral-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center">
+                    <span className="text-cyan-300 font-mono font-bold text-xs">MD</span>
+                  </div>
+                  <div>
+                    <div className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                      MR DEEPAK
+                    </div>
+                    <div className="text-[10px] font-mono text-neutral-400">
+                      Studio Navigation & Portal
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 bg-neutral-900 transition-colors cursor-pointer"
+                  aria-label="Close Menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="text-xs uppercase tracking-widest text-neutral-500 font-mono">
+                Menu Navigation
+              </div>
             <nav className="flex flex-col gap-2.5">
               {NAV_ITEMS.map((item) => {
                 const isActive = currentPage === item.id;
@@ -248,7 +417,94 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </nav>
 
-            <div className="pt-4 border-t border-neutral-800 space-y-2.5">
+            {/* Mobile Themes Setting Section */}
+            <div className="pt-3 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setMobileThemeExpanded(!mobileThemeExpanded)}
+                className="w-full flex items-center justify-between py-2 px-1 text-xs font-mono text-neutral-300 hover:text-white transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-cyan-400" />
+                  <span className="font-semibold text-white uppercase tracking-wider text-[11px]">
+                    Themes & Style Settings
+                  </span>
+                  <span className="text-[10px] text-cyan-300 font-mono px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800">
+                    {activeThemeOption.name}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-neutral-400 transition-transform duration-150 ${
+                    mobileThemeExpanded ? 'rotate-180 text-cyan-400' : ''
+                  }`}
+                />
+              </button>
+
+              {mobileThemeExpanded && (
+                <div className="mt-2 grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                  {THEME_OPTIONS.map((theme) => {
+                    const isSelected = theme.id === bgTheme;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => {
+                          if (onSelectBgTheme) {
+                            onSelectBgTheme(theme.id);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border text-left flex flex-col justify-between transition-all duration-100 active:scale-95 cursor-pointer ${
+                          isSelected
+                            ? 'bg-cyan-950/70 border-cyan-400 shadow-[0_0_12px_rgba(56,189,248,0.25)] text-cyan-200'
+                            : 'bg-neutral-900/70 border-white/10 text-neutral-300 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="w-4 h-4 rounded-md overflow-hidden border border-white/20 shadow-inner">
+                            <div
+                              className="w-full h-full"
+                              style={{
+                                background: `linear-gradient(135deg, ${theme.previewColors.join(', ')})`,
+                              }}
+                            />
+                          </div>
+                          {isSelected && <Check className="w-3.5 h-3.5 text-cyan-400" />}
+                        </div>
+                        <span className="text-xs font-semibold truncate leading-tight">
+                          {theme.name}
+                        </span>
+                        <span className="text-[9px] font-mono text-neutral-400 mt-0.5 truncate">
+                          {theme.badge}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Mobile Ambient Grid Toggle */}
+              {mobileThemeExpanded && onToggleBgGrid && (
+                <div className="mt-2.5 pt-2 border-t border-white/10 flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-neutral-300 flex items-center gap-1.5">
+                    <Grid className="w-3.5 h-3.5 text-cyan-400" />
+                    Ambient Grid Pattern
+                  </span>
+                  <button
+                    type="button"
+                    onClick={onToggleBgGrid}
+                    className={`text-[10px] font-mono px-2.5 py-1 rounded border transition-colors cursor-pointer active:scale-95 ${
+                      showBgGrid
+                        ? 'bg-cyan-950/80 border-cyan-800 text-cyan-300'
+                        : 'bg-neutral-900 border-neutral-700 text-neutral-400'
+                    }`}
+                  >
+                    {showBgGrid ? 'GRID: ON' : 'GRID: OFF'}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-neutral-800 space-y-2.5">
               {onToggleDarkTheme && (
                 <button
                   type="button"
@@ -273,6 +529,29 @@ export const Navbar: React.FC<NavbarProps> = ({
                       <span>Switch to Pure Dark Theme</span>
                     </>
                   )}
+                </button>
+              )}
+
+              {/* Mobile Website Refresh Action */}
+              {onRefresh && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onRefresh();
+                  }}
+                  disabled={isRefreshing}
+                  className="w-full flex items-center justify-between py-2.5 px-3.5 rounded-md bg-neutral-900/90 border border-neutral-800 text-neutral-200 text-xs font-mono hover:border-cyan-500/50 hover:text-white transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <RotateCw className={`w-4 h-4 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    <span className="font-semibold text-white">
+                      {isRefreshing ? 'Refreshing Website...' : 'Refresh Website'}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-cyan-300 font-mono px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800">
+                    Live Sync
+                  </span>
                 </button>
               )}
 
@@ -314,6 +593,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-cyan-400">Admin Protected</span>
           </div>
         </div>
+      </div>
       )}
     </>
   );

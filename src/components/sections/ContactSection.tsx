@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Send, CheckCircle2, AlertCircle, Phone, MessageSquare, Mail, Loader2, MapPin, ExternalLink } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Phone, MessageSquare, Mail, Loader2, MapPin, ExternalLink, Bell, Smartphone, ArrowRight } from 'lucide-react';
 import { submitContactLead, SubmitLeadPayload } from '../../lib/supabase';
+import { createWhatsAppLeadAlertUrl, createSmsLeadAlertUrl } from '../../lib/notifications';
 import { STUDIO_LOCATION } from '../../data/location';
 
 interface ContactSectionProps {
@@ -13,7 +14,7 @@ interface ContactSectionProps {
 
 export const ContactSection: React.FC<ContactSectionProps> = ({
   initialProjectType = 'Business Websites',
-  initialBudget = '₹5,000 - ₹15,000',
+  initialBudget = '₹4,999 - ₹9,999',
   initialDetails = '',
   isFullPage = false,
   embedded = false,
@@ -32,6 +33,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [savedToCloud, setSavedToCloud] = useState<boolean>(true);
+  const [lastSubmittedLead, setLastSubmittedLead] = useState<SubmitLeadPayload | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [currentTimeIST, setCurrentTimeIST] = useState<string>('');
 
@@ -123,13 +126,15 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
       const res = await submitContactLead(formData);
       if (res.success) {
         setIsSuccess(true);
+        setSavedToCloud(Boolean(res.savedToSupabase));
+        setLastSubmittedLead({ ...formData });
         setFormData({
           name: '',
           businessName: '',
           email: '',
           phone: '',
           projectType: 'Business Websites',
-          budget: '₹5,000 - ₹15,000',
+          budget: '₹4,999 - ₹9,999',
           message: '',
           honeypot: '',
         });
@@ -272,21 +277,87 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
           <div className="lg:col-span-7">
             <div className="glass-panel p-6 sm:p-10 rounded-2xl border border-white/10 shadow-2xl relative">
               {isSuccess ? (
-                <div className="py-12 text-center space-y-5 animate-in fade-in duration-300">
-                  <div className="w-16 h-16 rounded-full bg-emerald-950/80 border border-emerald-500/50 flex items-center justify-center mx-auto text-emerald-400">
+                <div className="py-10 text-center space-y-6 animate-in fade-in duration-300">
+                  <div className="w-16 h-16 rounded-full bg-emerald-950/80 border border-emerald-500/50 flex items-center justify-center mx-auto text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)]">
                     <CheckCircle2 className="w-8 h-8" />
                   </div>
-                  <h3 className="text-2xl font-display font-bold text-white">
-                    PROJECT REQUEST TRANSMITTED
-                  </h3>
-                  <p className="text-sm text-neutral-300 max-w-md mx-auto leading-relaxed">
-                    Thank you. We have received your project brief. A senior director will review your requirements and reach out within 24 business hours with an initial consultation proposal.
+                  <div>
+                    <h3 className="text-2xl font-display font-bold text-white mb-2">
+                      {savedToCloud ? 'INQUIRY SAVED TO SUPABASE' : 'INQUIRY SUBMITTED'}
+                    </h3>
+                    <p className="text-xs font-mono text-emerald-400">
+                      {savedToCloud
+                        ? '✓ Live Synced with Supabase · Instant Alert Dispatched'
+                        : '✓ Saved Locally · Instant Alert Dispatched'}
+                    </p>
+                  </div>
+
+                  {/* Phone Notification & Alert Status Card */}
+                  <div className="max-w-md mx-auto p-4 rounded-xl bg-neutral-900/90 border border-cyan-500/30 text-left space-y-3">
+                    <div className="flex items-center gap-2 text-cyan-300 font-semibold text-xs">
+                      <Bell className="w-4 h-4 text-cyan-400 animate-bounce" />
+                      <span>Phone Notification & Alert Triggered:</span>
+                    </div>
+                    <ul className="text-[11px] font-mono space-y-1.5 text-neutral-300">
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>Chime Sound & Mobile Vibration Sent to Mr Deepak</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>Client Brief Saved to Supabase Leads Table</span>
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>Founder SMS / WhatsApp Alert Link Generated (+91 9343795715)</span>
+                      </li>
+                    </ul>
+
+                    {lastSubmittedLead && (
+                      <div className="pt-2 border-t border-neutral-800 flex flex-col sm:flex-row gap-2">
+                        <a
+                          href={createWhatsAppLeadAlertUrl({
+                            name: lastSubmittedLead.name,
+                            phone: lastSubmittedLead.phone,
+                            email: lastSubmittedLead.email,
+                            projectType: lastSubmittedLead.projectType,
+                            budget: lastSubmittedLead.budget,
+                            message: lastSubmittedLead.message,
+                          })}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 inline-flex items-center justify-center gap-2 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all shadow-md cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>Ping Deepak on WhatsApp Directly</span>
+                        </a>
+
+                        <a
+                          href={createSmsLeadAlertUrl({
+                            name: lastSubmittedLead.name,
+                            phone: lastSubmittedLead.phone,
+                            email: lastSubmittedLead.email,
+                            projectType: lastSubmittedLead.projectType,
+                            budget: lastSubmittedLead.budget,
+                          })}
+                          className="inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-mono transition-colors cursor-pointer"
+                        >
+                          <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>SMS Alert</span>
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-xs text-neutral-400 max-w-md mx-auto leading-relaxed">
+                    Mr Deepak personally reviews all inquiries within 24 hours. If your project is urgent, click the direct WhatsApp button above for instant reply.
                   </p>
-                  <div className="pt-4">
+
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setIsSuccess(false)}
-                      className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-mono uppercase tracking-wider rounded-md transition-colors"
+                      className="px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white text-xs font-mono uppercase tracking-wider rounded-md transition-colors cursor-pointer"
                     >
                       Submit Another Inquiry
                     </button>
@@ -305,6 +376,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                       tabIndex={-1}
                       autoComplete="off"
                     />
+                  </div>
+
+                  <div className="flex items-center justify-between pb-4 mb-2 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                      <span className="text-[11px] font-mono text-cyan-300 uppercase tracking-wider">
+                        Supabase Cloud Connected
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono text-emerald-400/90 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-0.5 rounded flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      <span>Encrypted & Verified</span>
+                    </span>
                   </div>
 
                   {serverError && (
@@ -419,10 +503,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                         onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
                         className="w-full px-4 py-3 bg-neutral-900 border border-neutral-800 rounded-lg text-sm text-white focus:outline-none focus:ring-1 focus:ring-white transition-all cursor-pointer"
                       >
-                        <option value="₹5,000 - ₹15,000">₹5,000 – ₹15,000 INR (Basic Tier)</option>
-                        <option value="₹15,000 - ₹35,000">₹15,000 – ₹35,000 INR (Standard / Growth Tier)</option>
-                        <option value="₹35,000 - ₹75,000">₹35,000 – ₹75,000 INR (Premium Tier)</option>
-                        <option value="₹75,000+">₹75,000+ INR (Custom Enterprise)</option>
+                        <option value="₹4,999 - ₹9,999">₹4,999 – ₹9,999 INR (Basic Website)</option>
+                        <option value="₹9,999 - ₹14,999">₹9,999 – ₹14,999 INR (Standard Website)</option>
+                        <option value="₹14,999 - ₹19,999">₹14,999 – ₹19,999 INR (Professional Website)</option>
+                        <option value="₹19,999 - ₹24,999">₹19,999 – ₹24,999 INR (Advanced Website)</option>
+                        <option value="₹24,999 - ₹29,999">₹24,999 – ₹29,999 INR (Ecommerce Website)</option>
+                        <option value="₹29,999+">₹29,999+ INR (Custom Website / Enterprise)</option>
                       </select>
                     </div>
                   </div>

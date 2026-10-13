@@ -1,5 +1,11 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { ContactLead } from '../types';
+import { triggerLeadMobileAlert } from './notifications';
+
+// Supabase project credentials provided for Mr Deepak Studio
+export const SUPABASE_PROJECT_ID = 'asnwygdlttghyborxbnb';
+export const DEFAULT_SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
+export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_A11nCGDGgbcXgKWR064v7g_lu-aqHFs';
 
 function isValidHttpUrl(stringCandidate?: string): boolean {
   if (!stringCandidate || typeof stringCandidate !== 'string') return false;
@@ -21,35 +27,42 @@ const sanitizeEnvVar = (val: unknown): string => {
   return val.trim().replace(/^['"]|['"]$/g, '');
 };
 
-const rawUrl = sanitizeEnvVar(import.meta.env.VITE_SUPABASE_URL);
-const rawAnonKey = sanitizeEnvVar(import.meta.env.VITE_SUPABASE_ANON_KEY);
+const rawEnvUrl = sanitizeEnvVar(import.meta.env.VITE_SUPABASE_URL);
+const rawEnvAnonKey = sanitizeEnvVar(import.meta.env.VITE_SUPABASE_ANON_KEY);
+
+// Use env var if valid, otherwise fallback directly to provided project credentials
+export const supabaseUrl: string = isValidHttpUrl(rawEnvUrl) ? rawEnvUrl : DEFAULT_SUPABASE_URL;
+export const supabaseAnonKey: string = (rawEnvAnonKey && rawEnvAnonKey.length > 20 && !rawEnvAnonKey.includes('placeholder'))
+  ? rawEnvAnonKey
+  : DEFAULT_SUPABASE_ANON_KEY;
 
 export const isSupabaseConfigured: boolean = Boolean(
-  isValidHttpUrl(rawUrl) &&
-  rawAnonKey &&
-  rawAnonKey.length > 20 &&
-  !rawAnonKey.includes('placeholder')
+  isValidHttpUrl(supabaseUrl) &&
+  supabaseAnonKey &&
+  supabaseAnonKey.length > 20
 );
 
 export const supabase: SupabaseClient | null = (() => {
-  if (!isSupabaseConfigured || !rawUrl || !rawAnonKey) {
+  if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) {
     return null;
   }
   try {
-    return createClient(rawUrl, rawAnonKey, {
+    return createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
       },
     });
   } catch (err) {
-    console.warn('Supabase initialization safely skipped:', err);
+    console.warn('Supabase initialization safely caught:', err);
     return null;
   }
 })();
 
 export interface ApiDiagnostic {
   isConfigured: boolean;
+  projectId: string;
+  url: string;
   statusText: string;
   provider: 'supabase' | 'local_storage';
   details: string;
@@ -59,17 +72,159 @@ export function getApiDiagnostic(): ApiDiagnostic {
   if (isSupabaseConfigured && supabase) {
     return {
       isConfigured: true,
-      statusText: 'Supabase Cloud Database Connected',
+      projectId: SUPABASE_PROJECT_ID,
+      url: supabaseUrl,
+      statusText: 'Supabase Cloud Connected',
       provider: 'supabase',
-      details: 'Live PostgreSQL synchronization active with Row-Level Security policies.',
+      details: 'Live PostgreSQL database connection active with Row-Level Security policies enforced.',
     };
   }
   return {
     isConfigured: false,
+    projectId: SUPABASE_PROJECT_ID,
+    url: supabaseUrl,
     statusText: 'Encrypted Local Storage (Zero API Key Dependency)',
     provider: 'local_storage',
     details: 'All inquiries, leads, and studio configurations are safely persisted in offline-first browser storage.',
   };
+}
+
+// SQL Migration Script for Supabase SQL Editor
+export const SUPABASE_SQL_SCHEMA = `-- ==============================================================================
+-- MR DEEPAK PREMIUM WEB STUDIO - SUPABASE POSTGRESQL SCHEMA
+-- Project ID: asnwygdlttghyborxbnb
+-- URL: https://asnwygdlttghyborxbnb.supabase.co
+-- ==============================================================================
+
+-- 1. Create leads table for inbound client inquiries & project consultations
+create table if not exists public.leads (
+  id text primary key,
+  name text not null,
+  business_name text default 'N/A',
+  email text not null,
+  phone text default 'N/A',
+  project_type text default 'General Inquiries',
+  budget text default 'Flexible',
+  message text not null,
+  status text default 'new',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 2. Enable Row-Level Security (RLS)
+alter table public.leads enable row level security;
+
+-- 3. Grant schema usage and insert permissions for client contact form
+grant usage on schema public to anon, authenticated;
+grant insert on table public.leads to anon, authenticated;
+grant all on table public.leads to authenticated, service_role;
+
+-- 4. Policy: Allow anonymous visitors & customers to submit forms (Insert)
+drop policy if exists "Allow anonymous submissions" on public.leads;
+drop policy if exists "Allow public submissions" on public.leads;
+create policy "Allow anonymous submissions"
+  on public.leads
+  for insert
+  to anon, authenticated
+  with check (true);
+
+-- 5. Policy: Secure inquiries - only authenticated owners can read
+drop policy if exists "Allow authenticated read leads" on public.leads;
+drop policy if exists "Allow read leads" on public.leads;
+create policy "Allow authenticated read leads"
+  on public.leads
+  for select
+  to authenticated
+  using (true);
+
+-- 6. Policy: Only authenticated owners can update lead status
+drop policy if exists "Allow authenticated update leads" on public.leads;
+drop policy if exists "Allow update lead status" on public.leads;
+create policy "Allow authenticated update leads"
+  on public.leads
+  for update
+  to authenticated
+  using (true);
+
+-- 7. Policy: Only authenticated owners can delete leads
+drop policy if exists "Allow authenticated delete leads" on public.leads;
+drop policy if exists "Allow delete leads" on public.leads;
+create policy "Allow authenticated delete leads"
+  on public.leads
+  for delete
+  to authenticated
+  using (true);
+`;
+
+export interface TableStatusResult {
+  connected: boolean;
+  tableExists: boolean;
+  leadCount: number;
+  message: string;
+  error?: string;
+}
+
+// Checks whether the 'leads' table exists in the Supabase project
+export async function checkSupabaseTableStatus(): Promise<TableStatusResult> {
+  if (!supabase) {
+    return {
+      connected: false,
+      tableExists: false,
+      leadCount: 0,
+      message: 'Supabase client not initialized',
+    };
+  }
+
+  try {
+    const { count, error } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true });
+
+    if (!error) {
+      return {
+        connected: true,
+        tableExists: true,
+        leadCount: count ?? 0,
+        message: `Table 'leads' is active with ${count ?? 0} record(s).`,
+      };
+    }
+
+    // Permission denied on select (RLS protected for security)
+    if (error.code === '42501' || error.message?.includes('permission denied')) {
+      return {
+        connected: true,
+        tableExists: true,
+        leadCount: 0,
+        message: 'Table "leads" is active and accepting live form submissions. (Row Level Security protects customer leads from unauthorized public reads).',
+      };
+    }
+
+    // PGRST205: table not found in schema cache
+    if (error.code === 'PGRST205' || error.message?.includes('schema cache') || error.message?.includes('not find the table')) {
+      return {
+        connected: true,
+        tableExists: false,
+        leadCount: 0,
+        message: 'Connected to Supabase, but table "leads" has not been created yet in SQL Editor.',
+        error: error.message,
+      };
+    }
+
+    return {
+      connected: true,
+      tableExists: false,
+      leadCount: 0,
+      message: `Supabase responded with: ${error.message}`,
+      error: error.message,
+    };
+  } catch (err: any) {
+    return {
+      connected: false,
+      tableExists: false,
+      leadCount: 0,
+      message: `Connection check failed: ${err?.message || err}`,
+      error: String(err),
+    };
+  }
 }
 
 const LOCAL_STORAGE_LEADS_KEY = 'mrdeepak_leads_db';
@@ -137,18 +292,20 @@ export interface SubmitLeadPayload {
 // Simple client-side rate limiting tracker
 const submissionTimestamps: number[] = [];
 
-export async function submitContactLead(payload: SubmitLeadPayload): Promise<{ success: boolean; error?: string; leadId?: string }> {
+export async function submitContactLead(
+  payload: SubmitLeadPayload
+): Promise<{ success: boolean; error?: string; leadId?: string; savedToSupabase?: boolean }> {
   // 1. Anti-spam honeypot detection
   if (payload.honeypot && payload.honeypot.trim().length > 0) {
     // Silently drop spam without revealing to bot
-    return { success: true, leadId: 'lead-' + Date.now() };
+    return { success: true, leadId: 'lead-' + Date.now(), savedToSupabase: false };
   }
 
-  // 2. Rate limiting check (max 3 submissions in 2 minutes)
+  // 2. Rate limiting check (max 5 submissions in 2 minutes)
   const now = Date.now();
   const twoMinutesAgo = now - 120000;
   const recentSubmissions = submissionTimestamps.filter(t => t > twoMinutesAgo);
-  if (recentSubmissions.length >= 3) {
+  if (recentSubmissions.length >= 5) {
     return {
       success: false,
       error: 'Too many requests. Please wait a couple of minutes before submitting another inquiry.',
@@ -175,7 +332,9 @@ export async function submitContactLead(payload: SubmitLeadPayload): Promise<{ s
 
   submissionTimestamps.push(now);
 
-  // 4. Try Supabase if configured with a live client
+  let savedToSupabase = false;
+
+  // 4. Try Supabase live database insertion
   if (isSupabaseConfigured && supabase) {
     try {
       const { error } = await supabase.from('leads').insert({
@@ -191,21 +350,34 @@ export async function submitContactLead(payload: SubmitLeadPayload): Promise<{ s
       });
 
       if (!error) {
-        // Also keep local copy updated for fast UI view
-        const current = getStoredLeads();
-        saveStoredLeads([newLead, ...current]);
-        return { success: true, leadId: newLead.id };
+        savedToSupabase = true;
+      } else {
+        console.warn('Supabase insert notice (will persist in local storage):', error.message);
       }
-      console.warn('Supabase insert note, storing in local fallback:', error?.message || error);
     } catch (e) {
-      console.warn('Supabase exception, storing in local fallback:', e);
+      console.warn('Supabase exception (will persist in local storage):', e);
     }
   }
 
-  // Fallback / default: store in localStorage (always succeeds)
+  // Always persist locally as well so the user/admin immediately sees it
   const current = getStoredLeads();
   saveStoredLeads([newLead, ...current]);
-  return { success: true, leadId: newLead.id };
+
+  // Instantly trigger phone notification, alert sound, haptic vibration & push
+  try {
+    triggerLeadMobileAlert({
+      name: newLead.name,
+      phone: newLead.phone,
+      email: newLead.email,
+      projectType: newLead.projectType,
+      budget: newLead.budget,
+      message: newLead.message,
+    }).catch(err => console.warn('Notification trigger alert caught:', err));
+  } catch (err) {
+    console.warn('Notification trigger caught:', err);
+  }
+
+  return { success: true, leadId: newLead.id, savedToSupabase };
 }
 
 export async function fetchAllLeads(): Promise<ContactLead[]> {
@@ -231,10 +403,10 @@ export async function fetchAllLeads(): Promise<ContactLead[]> {
         }));
       }
       if (error) {
-        console.warn('Supabase query note, loading local fallback:', error?.message || error);
+        console.warn('Supabase fetch notice, falling back to local storage:', error.message);
       }
     } catch (e) {
-      console.warn('Supabase fetch exception, loading local fallback:', e);
+      console.warn('Supabase fetch exception, falling back to local storage:', e);
     }
   }
 
@@ -271,16 +443,20 @@ export async function deleteLead(id: string): Promise<boolean> {
   return true;
 }
 
-export async function addManualLead(leadData: Omit<ContactLead, 'id' | 'createdAt'>): Promise<ContactLead> {
+export async function addManualLead(
+  leadData: Omit<ContactLead, 'id' | 'createdAt'>
+): Promise<{ lead: ContactLead; savedToSupabase: boolean }> {
   const newLead: ContactLead = {
     ...leadData,
     id: 'lead-' + Date.now().toString(36),
     createdAt: new Date().toISOString(),
   };
 
+  let savedToSupabase = false;
+
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('leads').insert({
+      const { error } = await supabase.from('leads').insert({
         id: newLead.id,
         name: newLead.name,
         business_name: newLead.businessName,
@@ -291,6 +467,9 @@ export async function addManualLead(leadData: Omit<ContactLead, 'id' | 'createdA
         message: newLead.message,
         status: newLead.status,
       });
+      if (!error) {
+        savedToSupabase = true;
+      }
     } catch (e) {
       console.warn('Supabase manual insert note:', e);
     }
@@ -298,5 +477,38 @@ export async function addManualLead(leadData: Omit<ContactLead, 'id' | 'createdA
 
   const current = getStoredLeads();
   saveStoredLeads([newLead, ...current]);
-  return newLead;
+  return { lead: newLead, savedToSupabase };
+}
+
+// Sync all locally stored leads into Supabase in bulk
+export async function syncLocalLeadsToSupabase(): Promise<{ syncedCount: number; errors: number }> {
+  if (!supabase) return { syncedCount: 0, errors: 0 };
+  const localLeads = getStoredLeads();
+  let synced = 0;
+  let errors = 0;
+
+  for (const lead of localLeads) {
+    try {
+      const { error } = await supabase.from('leads').upsert({
+        id: lead.id,
+        name: lead.name,
+        business_name: lead.businessName,
+        email: lead.email,
+        phone: lead.phone,
+        project_type: lead.projectType,
+        budget: lead.budget,
+        message: lead.message,
+        status: lead.status,
+      });
+      if (!error) {
+        synced++;
+      } else {
+        errors++;
+      }
+    } catch {
+      errors++;
+    }
+  }
+
+  return { syncedCount: synced, errors };
 }

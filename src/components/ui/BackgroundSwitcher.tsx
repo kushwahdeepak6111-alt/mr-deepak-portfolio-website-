@@ -9,7 +9,7 @@ interface BackgroundSwitcherProps {
   onToggleGrid: () => void;
 }
 
-interface ThemeOption {
+export interface ThemeOption {
   id: BackgroundTheme;
   name: string;
   subtitle: string;
@@ -18,7 +18,7 @@ interface ThemeOption {
   badge: string;
 }
 
-const THEME_OPTIONS: ThemeOption[] = [
+export const THEME_OPTIONS: ThemeOption[] = [
   {
     id: 'dark-theme',
     name: 'OLED Pure Dark',

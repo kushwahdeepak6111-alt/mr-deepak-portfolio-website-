@@ -1,13 +1,15 @@
 import React from 'react';
-import { ArrowUpRight, Mail, Phone, MessageSquare, ShieldCheck, ArrowRight, MapPin } from 'lucide-react';
+import { ArrowUpRight, Mail, Phone, MessageSquare, ShieldCheck, ArrowRight, MapPin, RotateCw } from 'lucide-react';
 import { STUDIO_LOCATION } from '../../data/location';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
   onOpenQuoteModal: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenQuoteModal }) => {
+export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenQuoteModal, onRefresh, isRefreshing }) => {
   return (
     <footer className="relative bg-[#050608] border-t border-neutral-800/80 pt-20 pb-12 overflow-hidden">
       {/* Background ambient lighting */}
@@ -262,6 +264,21 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenQuoteModal }) 
             >
               Terms of Engagement
             </button>
+            {onRefresh && (
+              <>
+                <span aria-hidden="true" className="text-neutral-700">·</span>
+                <button
+                  type="button"
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="hover:text-cyan-400 transition-colors cursor-pointer flex items-center gap-1 text-neutral-400"
+                  title="Refresh Website (Reload latest content & state)"
+                >
+                  <RotateCw className={`w-3 h-3 text-cyan-400 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  <span>{isRefreshing ? 'Refreshing...' : 'Refresh Website'}</span>
+                </button>
+              </>
+            )}
             <span aria-hidden="true" className="text-neutral-700">·</span>
             <span className="font-mono text-neutral-600">Netlify & Supabase Verified</span>
           </div>

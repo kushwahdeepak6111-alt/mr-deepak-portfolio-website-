@@ -30,8 +30,22 @@ import {
   ShieldCheck,
   Palette,
   Grid,
+  Bell,
+  BellRing,
+  Volume2,
+  Smartphone,
 } from 'lucide-react';
 import { ContactLead, Project, BackgroundTheme } from '../types';
+import {
+  getNotificationSettings,
+  saveNotificationSettings,
+  requestNotificationPermission,
+  playChimeSound,
+  triggerLeadMobileAlert,
+  createWhatsAppLeadAlertUrl,
+  createSmsLeadAlertUrl,
+  NotificationSettings,
+} from '../lib/notifications';
 import {
   fetchAllLeads,
   updateLeadStatus,
@@ -39,6 +53,12 @@ import {
   addManualLead,
   isSupabaseConfigured,
   getApiDiagnostic,
+  checkSupabaseTableStatus,
+  syncLocalLeadsToSupabase,
+  SUPABASE_SQL_SCHEMA,
+  SUPABASE_PROJECT_ID,
+  supabaseUrl,
+  TableStatusResult,
 } from '../lib/supabase';
 import { PRICING_TIERS } from '../data/pricing';
 import { PROJECTS as DEFAULT_PROJECTS } from '../data/projects';
@@ -87,6 +107,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [isAddProjectModalOpen, setIsAddProjectModalOpen] = useState<boolean>(false);
   const [copiedText, setCopiedText] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  // Notification Settings State
+  const [notificationConfig, setNotificationConfig] = useState<NotificationSettings>(() => getNotificationSettings());
+  const [browserPermission, setBrowserPermission] = useState<string>(() => {
+    return 'Notification' in window ? Notification.permission : 'unsupported';
+  });
 
   const showNotice = (msg: string) => {
     setActionNotice(msg);
@@ -150,13 +176,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   };
 
-  const handleQuickLogin = () => {
-    setIsAuthenticated(true);
-    sessionStorage.setItem('deepak_admin_auth', 'true');
-    localStorage.setItem('deepak_admin_auth', 'true');
-    setAuthError(null);
-  };
-
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('deepak_admin_auth');
@@ -192,13 +211,48 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     showNotice('Lead permanently removed.');
   };
 
+  // Supabase live verification state
+  const [tableStatus, setTableStatus] = useState<TableStatusResult | null>(null);
+  const [isCheckingTable, setIsCheckingTable] = useState<boolean>(false);
+  const [isSyncingLeads, setIsSyncingLeads] = useState<boolean>(false);
+  const [copiedSql, setCopiedSql] = useState<boolean>(false);
+
+  const handleCheckTable = async () => {
+    setIsCheckingTable(true);
+    try {
+      const res = await checkSupabaseTableStatus();
+      setTableStatus(res);
+      showNotice(res.tableExists ? 'Supabase table "leads" is active and responding!' : res.message);
+    } finally {
+      setIsCheckingTable(false);
+    }
+  };
+
+  const handleSyncLeads = async () => {
+    setIsSyncingLeads(true);
+    try {
+      const res = await syncLocalLeadsToSupabase();
+      showNotice(`Synced ${res.syncedCount} lead(s) to Supabase (${res.errors} skipped/errors).`);
+      await loadLeads();
+    } finally {
+      setIsSyncingLeads(false);
+    }
+  };
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SCHEMA);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 2500);
+    showNotice('Supabase SQL Schema copied to clipboard!');
+  };
+
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLeadForm.name || !newLeadForm.email) {
       showNotice('Please enter at least client name and email/contact.');
       return;
     }
-    const created = await addManualLead({
+    const { lead: created, savedToSupabase } = await addManualLead({
       name: newLeadForm.name,
       businessName: newLeadForm.businessName || 'N/A',
       email: newLeadForm.email,
@@ -210,7 +264,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     });
     setLeads(prev => [created, ...prev]);
     setIsAddLeadModalOpen(false);
-    showNotice('Inbound lead added successfully.');
+    showNotice(savedToSupabase ? 'Inbound lead saved directly to Supabase cloud.' : 'Inbound lead recorded in local pipeline.');
     setNewLeadForm({
       name: '',
       businessName: '',
@@ -410,20 +464,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
             </button>
           </form>
 
-          {/* Quick test convenience login (Encrypted & Secure) */}
-          <div className="mt-5 pt-5 border-t border-neutral-800/80 text-center space-y-3">
-            <button
-              type="button"
-              onClick={handleQuickLogin}
-              className="w-full py-2.5 px-3 bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-800 hover:border-cyan-500/40 text-xs font-mono text-cyan-300 rounded-md transition-all flex items-center justify-center gap-2"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>One-Click Developer Access</span>
-            </button>
-
+          {/* Admin Security Badge */}
+          <div className="mt-5 pt-5 border-t border-neutral-800/80 text-center">
             <div className="flex items-center justify-center gap-1.5 text-[11px] font-mono text-neutral-500">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Protected by Mr Deepak Admin Encryption</span>
+              <span>Protected by Mr Deepak Admin Authentication</span>
             </div>
           </div>
         </div>
@@ -1074,11 +1119,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <span>Live Indian Rupee (₹ INR) Pricing Tiers</span>
               </h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Your packages start at ₹5,000 as configured. These rates synchronize across all price cards and instant project calculators.
+                Your packages start at ₹4,999 across 6 project tiers. Real price is decided based on client requirements and added features.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {PRICING_TIERS.map((tier) => (
                 <div
                   key={tier.id}
@@ -1101,7 +1146,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     </div>
 
                     <div className="text-2xl sm:text-3xl font-display font-extrabold text-white mb-1">
-                      ₹{tier.startingPriceINR.toLocaleString('en-IN')}
+                      {tier.priceRangeINR || `₹${tier.startingPriceINR.toLocaleString('en-IN')}+`}
                     </div>
                     <div className="text-xs font-mono text-neutral-400 mb-3">
                       Est. Turnaround: {tier.deliveryTime}
@@ -1124,10 +1169,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   <div className="pt-4 mt-4 border-t border-neutral-800">
                     <button
                       onClick={() => {
-                        const quoteMsg = `*MR DEEPAK STUDIO — ${tier.name} Package*\nStarting Rate: ₹${tier.startingPriceINR.toLocaleString('en-IN')}\nTurnaround: ${tier.deliveryTime}\nIncludes: ${tier.features.slice(0, 4).join(', ')}`;
+                        const quoteMsg = `*MR DEEPAK STUDIO — ${tier.name}*\nPrice Range: ${tier.priceRangeINR || `₹${tier.startingPriceINR.toLocaleString('en-IN')}+`}\nTurnaround: ${tier.deliveryTime}\nNote: Real price decided based on requirements & features\nIncludes: ${tier.features.slice(0, 4).join(', ')}`;
                         copyToClipboard(quoteMsg, tier.id);
                       }}
-                      className="w-full py-2 px-3 rounded bg-neutral-800 hover:bg-neutral-700 text-xs font-mono text-white flex items-center justify-center gap-2 transition-colors"
+                      className="w-full py-2 px-3 rounded bg-neutral-800 hover:bg-neutral-700 text-xs font-mono text-white flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
                       {copiedText === tier.id ? (
                         <>
@@ -1164,15 +1209,18 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <div className="p-4 rounded-lg bg-black border border-neutral-800 font-mono text-xs text-neutral-300 space-y-2 leading-relaxed">
                 <p>Hello! Thank you for getting in touch with <strong>Mr Deepak Studio</strong>.</p>
                 <p>Here are our bespoke web development package tiers:</p>
-                <p>• <strong>Basic Tier (₹5,000)</strong>: 1–3 custom responsive pages, WhatsApp & Call buttons, lead form, fast mobile UI (3–5 Days).</p>
-                <p>• <strong>Standard Tier (₹15,000)</strong>: Up to 8 high-fidelity pages, animations, booking flow, Supabase database (1–2 Weeks).</p>
-                <p>• <strong>Premium Tier (₹35,000)</strong>: Full-stack web app, custom portal, database, integrations (2–4 Weeks).</p>
-                <p>Let me know your preferred tier and we can kick off with a direct design sprint!</p>
+                <p>• <strong>Basic Website (₹4,999 – ₹9,999)</strong>: 1–3 custom responsive pages, WhatsApp & Call buttons (2–4 Days).</p>
+                <p>• <strong>Standard Website (₹9,999 – ₹14,999)</strong>: 5–7 pages, brand typography, galleries, full SEO (4–7 Days).</p>
+                <p>• <strong>Professional Website (₹14,999 – ₹19,999)</strong>: Up to 10 pages, booking flow, Supabase database, animations (1–2 Weeks).</p>
+                <p>• <strong>Advanced Website (₹19,999 – ₹24,999)</strong>: Client portal, auth, custom DB schema & RLS, API integrations (2–3 Weeks).</p>
+                <p>• <strong>Ecommerce Website (₹24,999 – ₹29,999)</strong>: Product catalog, cart, online payment checkout, order management (2–4 Weeks).</p>
+                <p>• <strong>Custom Website (₹29,999+)</strong>: Tailored enterprise architecture, SaaS applications, custom algorithms.</p>
+                <p className="text-cyan-400 font-semibold">✦ Real price is decided based on your exact requirements and added features.</p>
               </div>
 
               <button
                 onClick={() => {
-                  const text = `Hello! Thank you for getting in touch with Mr Deepak Studio.\n\nHere are our bespoke web development package tiers:\n• Basic Tier (₹5,000): 1–3 custom responsive pages, WhatsApp & Call buttons, lead form, fast mobile UI (3–5 Days).\n• Standard Tier (₹15,000): Up to 8 high-fidelity pages, animations, booking flow, Supabase database (1–2 Weeks).\n• Premium Tier (₹35,000): Full-stack web app, custom portal, database, integrations (2–4 Weeks).\n\nLet me know your preferred tier and we can kick off with a direct design sprint!`;
+                  const text = `Hello! Thank you for getting in touch with Mr Deepak Studio.\n\nHere are our bespoke web development package tiers:\n• Basic Website: ₹4,999 – ₹9,999 (1–3 pages, WhatsApp & Call actions, 2–4 Days)\n• Standard Website: ₹9,999 – ₹14,999 (5–7 pages, custom layout, SEO, 4–7 Days)\n• Professional Website: ₹14,999 – ₹19,999 (Up to 10 pages, booking flow, database, 1–2 Weeks)\n• Advanced Website: ₹19,999 – ₹24,999 (Client portal, auth, APIs, 2–3 Weeks)\n• Ecommerce Website: ₹24,999 – ₹29,999 (Store, cart, payment gateway, 2–4 Weeks)\n• Custom Website: ₹29,999+ (Bespoke architecture & SaaS platforms)\n\n✦ Note: Real price is decided based on your exact requirements and added features.\n\nLet me know your requirements and we can begin right away!`;
                   copyToClipboard(text, 'proposal_template');
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-black font-semibold text-xs font-mono rounded-lg transition-colors cursor-pointer"
@@ -1342,37 +1390,307 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               </div>
 
               {/* API Keys & Database Diagnostics Box */}
-              <div className="mt-5 p-4 rounded-xl bg-[#080d1a] border border-cyan-500/20 text-xs">
-                <div className="flex items-center justify-between mb-2 pb-2 border-b border-cyan-500/10">
+              <div className="mt-5 p-4 rounded-xl bg-[#080d1a] border border-cyan-500/20 text-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-cyan-500/10">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                    <Database className="w-4 h-4 text-cyan-400" />
                     <span className="font-mono font-semibold text-cyan-300 uppercase tracking-wider">
-                      API Keys & Database Verification
+                      Supabase Cloud Database Control
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded">
-                    STATUS: OK
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-0.5 rounded">
+                    DATABASE: CONNECTED
                   </span>
                 </div>
 
-                <p className="text-neutral-300 mb-3 leading-relaxed">
+                <p className="text-neutral-300 leading-relaxed font-sans text-xs">
                   {getApiDiagnostic().details}
                 </p>
 
+                {/* Key metrics grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-[11px]">
-                  <div className="p-2.5 rounded bg-black/40 border border-white/5">
-                    <span className="text-neutral-500 block mb-0.5">Integration:</span>
-                    <span className="text-white font-medium">
-                      {isSupabaseConfigured ? 'Supabase Cloud (Live)' : 'Zero-Dependency Local Engine'}
-                    </span>
+                  <div className="p-2.5 rounded bg-black/50 border border-white/5">
+                    <span className="text-neutral-500 block mb-0.5">Project ID:</span>
+                    <span className="text-cyan-300 font-medium font-mono">••••••••••••••••</span>
                   </div>
-                  <div className="p-2.5 rounded bg-black/40 border border-white/5">
-                    <span className="text-neutral-500 block mb-0.5">Error Protection:</span>
-                    <span className="text-emerald-400 font-medium">Graceful Auto-Fallback Active</span>
+                  <div className="p-2.5 rounded bg-black/50 border border-white/5">
+                    <span className="text-neutral-500 block mb-0.5">Endpoint:</span>
+                    <span className="text-white font-medium truncate block">{supabaseUrl}</span>
                   </div>
-                  <div className="p-2.5 rounded bg-black/40 border border-white/5">
-                    <span className="text-neutral-500 block mb-0.5">Offline Resilience:</span>
-                    <span className="text-cyan-400 font-medium">100% Guaranteed</span>
+                  <div className="p-2.5 rounded bg-black/50 border border-white/5">
+                    <span className="text-neutral-500 block mb-0.5">API Key:</span>
+                    <span className="text-emerald-400 font-medium truncate block">sb_publishable_...aqHFs</span>
+                  </div>
+                </div>
+
+                {/* Table Status Check Output */}
+                {tableStatus && (
+                  <div
+                    className={`p-3 rounded-lg border text-xs font-mono transition-all ${
+                      tableStatus.tableExists
+                        ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
+                        : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold uppercase tracking-wider flex items-center gap-1.5">
+                        <span
+                          className={`w-2 h-2 rounded-full ${
+                            tableStatus.tableExists ? 'bg-emerald-400' : 'bg-amber-400'
+                          }`}
+                        />
+                        {tableStatus.tableExists ? 'Table Active' : 'Table Pending Creation'}
+                      </span>
+                      <span>Records: {tableStatus.leadCount}</span>
+                    </div>
+                    <p className="text-[11px] opacity-90">{tableStatus.message}</p>
+                  </div>
+                )}
+
+                {/* Supabase Action Controls */}
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleCheckTable}
+                    disabled={isCheckingTable}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-500/30 text-cyan-300 text-xs font-mono transition-colors disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isCheckingTable ? 'animate-spin' : ''}`} />
+                    <span>{isCheckingTable ? 'Checking...' : 'Test Table Connection'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleCopySql}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-white text-xs font-mono transition-colors"
+                  >
+                    {copiedSql ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">SQL Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-neutral-300" />
+                        <span>Copy Supabase SQL Script</span>
+                      </>
+                    )}
+                  </button>
+
+                  <a
+                    href={`https://supabase.com/dashboard/project/${SUPABASE_PROJECT_ID}/sql/new`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-200 text-xs font-mono transition-colors"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+                    <span>Open Supabase SQL Editor</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={handleSyncLeads}
+                    disabled={isSyncingLeads}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-500/30 text-emerald-300 text-xs font-mono transition-colors disabled:opacity-50 ml-auto"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isSyncingLeads ? 'animate-spin' : ''}`} />
+                    <span>{isSyncingLeads ? 'Syncing...' : 'Sync Local Leads to Cloud'}</span>
+                  </button>
+                </div>
+
+                {/* SQL Quick Reference Snippet */}
+                <details className="group pt-2">
+                  <summary className="text-[11px] font-mono text-neutral-400 cursor-pointer hover:text-cyan-300 transition-colors list-none flex items-center justify-between py-1 border-t border-white/5">
+                    <span>View PostgreSQL Schema Script (CREATE TABLE public.leads)</span>
+                    <span className="text-cyan-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <div className="mt-2 p-3 rounded-lg bg-black/80 border border-neutral-800 font-mono text-[10px] text-neutral-300 overflow-x-auto relative">
+                    <pre className="whitespace-pre">{SUPABASE_SQL_SCHEMA}</pre>
+                    <button
+                      type="button"
+                      onClick={handleCopySql}
+                      className="absolute top-2 right-2 px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 text-white text-[10px] font-mono flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedSql ? 'Copied' : 'Copy'}</span>
+                    </button>
+                  </div>
+                </details>
+              </div>
+
+              {/* Instant Phone & Mobile Notification Control Center */}
+              <div className="mt-5 p-5 rounded-xl bg-gradient-to-br from-[#0b1324] via-[#090e1a] to-[#040812] border border-cyan-500/30 text-xs space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-cyan-500/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                      <BellRing className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-mono font-bold text-white text-sm">
+                        Real-Time Phone & Notification Alerts (Mr Deepak)
+                      </h4>
+                      <p className="text-[11px] text-neutral-400 font-sans">
+                        Instant sound chime, mobile push notification & haptic vibration when forms save to Supabase
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-mono border ${
+                    browserPermission === 'granted'
+                      ? 'bg-emerald-950/60 border-emerald-500/40 text-emerald-300'
+                      : 'bg-amber-950/60 border-amber-500/40 text-amber-300'
+                  }`}>
+                    Browser Push: {browserPermission.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Push Permission Toggle / Request */}
+                  <div className="p-3.5 rounded-lg bg-black/60 border border-neutral-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-neutral-400 text-xs font-mono mb-1">
+                        <span>Mobile Push</span>
+                        <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <p className="text-[11px] text-neutral-300">
+                        {browserPermission === 'granted'
+                          ? 'Permission granted. Phone notifications will appear on lockscreen.'
+                          : 'Push notifications are awaiting your permission.'}
+                      </p>
+                    </div>
+                    <div className="pt-3">
+                      {browserPermission !== 'granted' ? (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const res = await requestNotificationPermission();
+                            setBrowserPermission(res);
+                            if (res === 'granted') {
+                              showNotice('Mobile Push notifications granted!');
+                              playChimeSound();
+                            }
+                          }}
+                          className="w-full py-1.5 px-2.5 bg-cyan-500 hover:bg-cyan-400 text-black font-bold rounded text-[11px] font-mono transition-colors cursor-pointer"
+                        >
+                          Enable Phone Push
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3 h-3" />
+                          <span>Active on Device</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Audio Chime Test & Setting */}
+                  <div className="p-3.5 rounded-lg bg-black/60 border border-neutral-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-neutral-400 text-xs font-mono mb-1">
+                        <span>Sound Chime</span>
+                        <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <p className="text-[11px] text-neutral-300">
+                        Synthesizes a pleasant luxury sound chime immediately when client submits.
+                      </p>
+                    </div>
+                    <div className="pt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          playChimeSound();
+                          showNotice('Played chime sound test');
+                        }}
+                        className="py-1 px-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded text-[11px] font-mono transition-colors cursor-pointer"
+                      >
+                        Test Sound
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...notificationConfig, soundEnabled: !notificationConfig.soundEnabled };
+                          setNotificationConfig(updated);
+                          saveNotificationSettings(updated);
+                          showNotice(`Sound chime ${updated.soundEnabled ? 'Enabled' : 'Disabled'}`);
+                        }}
+                        className={`text-[11px] font-mono px-2 py-1 rounded transition-colors ${
+                          notificationConfig.soundEnabled
+                            ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-neutral-800 text-neutral-500'
+                        }`}
+                      >
+                        {notificationConfig.soundEnabled ? 'ON' : 'MUTED'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Mobile Vibration Toggle */}
+                  <div className="p-3.5 rounded-lg bg-black/60 border border-neutral-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-neutral-400 text-xs font-mono mb-1">
+                        <span>Phone Vibration</span>
+                        <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <p className="text-[11px] text-neutral-300">
+                        Triggers tactile hardware vibration pattern on Android and mobile browsers.
+                      </p>
+                    </div>
+                    <div className="pt-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = { ...notificationConfig, vibrationEnabled: !notificationConfig.vibrationEnabled };
+                          setNotificationConfig(updated);
+                          saveNotificationSettings(updated);
+                          if (updated.vibrationEnabled && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                            navigator.vibrate([150, 100, 200]);
+                          }
+                          showNotice(`Mobile vibration ${updated.vibrationEnabled ? 'Enabled' : 'Disabled'}`);
+                        }}
+                        className={`w-full py-1.5 px-2.5 rounded text-[11px] font-mono transition-colors text-center ${
+                          notificationConfig.vibrationEnabled
+                            ? 'bg-emerald-950/60 border border-emerald-500/30 text-emerald-400'
+                            : 'bg-neutral-800 text-neutral-500'
+                        }`}
+                      >
+                        Vibration: {notificationConfig.vibrationEnabled ? 'ACTIVE' : 'OFF'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Registered Notification Mobile */}
+                  <div className="p-3.5 rounded-lg bg-black/60 border border-neutral-800 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between text-neutral-400 text-xs font-mono mb-1">
+                        <span>Admin Number</span>
+                        <Phone className="w-3.5 h-3.5 text-cyan-400" />
+                      </div>
+                      <div className="text-white font-mono font-bold text-xs">
+                        +91 9343795715
+                      </div>
+                      <p className="text-[10px] text-neutral-400 mt-1">
+                        WhatsApp alerts & SMS quick ping buttons point directly to this phone number.
+                      </p>
+                    </div>
+                    <div className="pt-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await triggerLeadMobileAlert({
+                            name: 'Test Client (Demo)',
+                            phone: '+91 9876543210',
+                            email: 'client@example.com',
+                            projectType: 'Business Websites',
+                            budget: '₹15,000 - ₹35,000',
+                            message: 'This is a test notification verifying phone sound, vibration and push alert!',
+                          });
+                          showNotice('Test alert dispatched to phone & browser!');
+                        }}
+                        className="w-full py-1 px-2 bg-neutral-800 hover:bg-neutral-700 text-cyan-300 rounded text-[11px] font-mono transition-colors cursor-pointer"
+                      >
+                        ⚡ Send Test Phone Alert
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1474,10 +1792,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       onChange={(e) => setNewLeadForm({ ...newLeadForm, budget: e.target.value })}
                       className="w-full px-3 py-2 bg-black border border-neutral-800 rounded text-xs text-white focus:outline-none focus:border-cyan-400"
                     >
-                      <option value="₹5,000 - ₹15,000">₹5,000 - ₹15,000 (Basic)</option>
-                      <option value="₹15,000 - ₹35,000">₹15,000 - ₹35,000 (Standard)</option>
-                      <option value="₹35,000 - ₹75,000">₹35,000 - ₹75,000 (Premium)</option>
-                      <option value="₹75,000+">₹75,000+ (Custom Enterprise)</option>
+                      <option value="₹4,999 - ₹9,999">₹4,999 – ₹9,999 (Basic Website)</option>
+                      <option value="₹9,999 - ₹14,999">₹9,999 – ₹14,999 (Standard Website)</option>
+                      <option value="₹14,999 - ₹19,999">₹14,999 – ₹19,999 (Professional Website)</option>
+                      <option value="₹19,999 - ₹24,999">₹19,999 – ₹24,999 (Advanced Website)</option>
+                      <option value="₹24,999 - ₹29,999">₹24,999 – ₹29,999 (Ecommerce Website)</option>
+                      <option value="₹29,999+">₹29,999+ (Custom Website / Enterprise)</option>
                     </select>
                   </div>
                 </div>

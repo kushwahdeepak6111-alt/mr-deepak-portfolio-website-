@@ -46,7 +46,11 @@ export interface PricingTier {
   name: string;
   tagline: string;
   startingPriceINR: number;
+  maxPriceINR?: number;
+  priceRangeINR?: string;
   startingPriceUSD: number;
+  maxPriceUSD?: number;
+  priceRangeUSD?: string;
   featured?: boolean;
   description: string;
   idealFor: string;

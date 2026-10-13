@@ -84,3 +84,23 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Mobile Push Notification Click Event Handler
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const urlToOpen = (event.notification.data && event.notification.data.url) || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (let client of windowClients) {
+        if ('focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});

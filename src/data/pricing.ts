@@ -1,4 +1,4 @@
-import { PricingTier } from '../types';
+import { PricingTier, MaintenancePlan } from '../types';
 
 export const PRICING_TIERS: PricingTier[] = [
   {
@@ -157,3 +157,25 @@ export const PRICING_FACTORS = [
   'Ecommerce catalog size, cart features & inventory management',
   'Post-launch SLA, maintenance & continuous refinement needs',
 ];
+
+export const MAINTENANCE_PLAN: MaintenancePlan = {
+  id: 'monthly-maintenance',
+  name: 'Website Maintenance & Support',
+  tagline: 'Reliable, continuous stewardship & performance keeping your digital flagship running smoothly',
+  priceINR: 1000,
+  priceDisplayINR: '₹1,000 / month',
+  billingCycle: 'per month',
+  priceUSD: 15,
+  priceDisplayUSD: '$15 / month',
+  description: 'Ongoing routine maintenance, security checks, uptime monitoring, bug fixes, and minor content updates to ensure your website remains modern, secure, and fast month after month.',
+  features: [
+    '₹1,000 per month transparent flat fee',
+    'Routine security audits & SSL certificate monitoring',
+    'Monthly content updates & copy/image tweaks',
+    'Uptime & 24/7 server health monitoring',
+    'Bug fixes, script compatibility & link maintenance',
+    'Database & lead backup checks (Supabase)',
+    'Mobile responsiveness & browser regression testing',
+    'Direct priority support via WhatsApp with Mr Deepak',
+  ],
+};

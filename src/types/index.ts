@@ -58,6 +58,19 @@ export interface PricingTier {
   deliveryTime: string;
 }
 
+export interface MaintenancePlan {
+  id: string;
+  name: string;
+  tagline: string;
+  priceINR: number;
+  priceDisplayINR: string;
+  billingCycle: string;
+  priceUSD: number;
+  priceDisplayUSD: string;
+  description: string;
+  features: string[];
+}
+
 export interface ContactLead {
   id: string;
   name: string;

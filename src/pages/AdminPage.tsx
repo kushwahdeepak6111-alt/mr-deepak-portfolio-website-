@@ -28,6 +28,7 @@ import {
   Settings,
   ShieldAlert,
   ShieldCheck,
+  Wrench,
   Palette,
   Grid,
   Bell,
@@ -60,7 +61,7 @@ import {
   supabaseUrl,
   TableStatusResult,
 } from '../lib/supabase';
-import { PRICING_TIERS } from '../data/pricing';
+import { PRICING_TIERS, MAINTENANCE_PLAN } from '../data/pricing';
 import { PROJECTS as DEFAULT_PROJECTS } from '../data/projects';
 
 interface AdminPageProps {
@@ -1189,6 +1190,64 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Monthly Website Maintenance Charge Rate Card */}
+            <div className="p-6 rounded-xl bg-gradient-to-r from-neutral-900/90 via-[#0d1618] to-neutral-900/90 border border-emerald-500/40">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-neutral-800">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold mb-1.5">
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>ONGOING CLIENT RETAINER</span>
+                  </div>
+                  <h4 className="text-base font-display font-bold text-white">
+                    {MAINTENANCE_PLAN.name}
+                  </h4>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {MAINTENANCE_PLAN.description}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="text-right">
+                    <span className="text-2xl font-display font-extrabold text-emerald-400">
+                      ₹1,000
+                    </span>
+                    <span className="text-xs font-mono text-neutral-400 block">
+                      / month
+                    </span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const maintMsg = `*MR DEEPAK STUDIO — Website Maintenance & Support Plan*\nCharge: ₹1,000 / month\nBilling: Billed monthly (cancel anytime)\nIncludes:\n• Routine security audits & SSL monitoring\n• Monthly content & copy updates\n• 24/7 uptime monitoring\n• Bug fixes & script compatibility\n• Database & lead backup checks\n• Priority WhatsApp support with Mr Deepak`;
+                      copyToClipboard(maintMsg, 'monthly-maintenance');
+                    }}
+                    className="py-2 px-3 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-mono text-emerald-300 flex items-center gap-2 transition-colors cursor-pointer"
+                  >
+                    {copiedText === 'monthly-maintenance' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Copy Retainer Quote</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 mt-4">
+                {MAINTENANCE_PLAN.features.map((feat, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-xs text-neutral-300 font-sans">
+                    <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{feat}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

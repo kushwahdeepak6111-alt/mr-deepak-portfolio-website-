@@ -18,6 +18,7 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
   const [hasBooking, setHasBooking] = useState<boolean>(false);
   const [hasSupabase, setHasSupabase] = useState<boolean>(false);
   const [hasSeoSprint, setHasSeoSprint] = useState<boolean>(true);
+  const [hasMaintenance, setHasMaintenance] = useState<boolean>(true);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -78,6 +79,7 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
       hasBooking ? 'Includes Booking / Reservation System (+₹2,500)' : null,
       hasSupabase ? 'Includes Supabase Database & Auth (+₹4,500)' : null,
       hasSeoSprint ? 'Includes Comprehensive SEO & Schema Sprint (+₹2,000)' : null,
+      hasMaintenance ? 'Includes Monthly Website Maintenance Care Plan (₹1,000/month)' : null,
     ]
       .filter(Boolean)
       .join(', ');
@@ -232,6 +234,23 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
                   className="rounded border-neutral-700 accent-white w-4 h-4 cursor-pointer"
                 />
               </label>
+
+              <label className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 cursor-pointer hover:border-emerald-500/50">
+                <div className="flex flex-col">
+                  <span className="text-xs sm:text-sm text-emerald-300 font-medium">
+                    Continuous Website Maintenance & Uptime Care
+                  </span>
+                  <span className="text-[11px] text-neutral-400">
+                    Security patches, regular content updates, backups & monitoring (₹1,000 / month)
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hasMaintenance}
+                  onChange={(e) => setHasMaintenance(e.target.checked)}
+                  className="rounded border-emerald-700 accent-emerald-400 w-4 h-4 cursor-pointer"
+                />
+              </label>
             </div>
           </div>
 
@@ -246,6 +265,12 @@ export const QuoteCalculatorModal: React.FC<QuoteCalculatorModalProps> = ({
               <span className="text-xs text-neutral-400 font-sans mt-0.5 block">
                 Estimated Delivery: {weeksMin}–{weeksMax} Weeks
               </span>
+              {hasMaintenance && (
+                <span className="text-xs text-emerald-400 font-sans mt-1 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Includes Ongoing Maintenance Plan: <strong>₹1,000 / month</strong>
+                </span>
+              )}
               <span className="text-[11px] text-cyan-400 font-sans mt-1.5 block">
                 ✦ Real price is decided based on your exact requirements and added features.
               </span>

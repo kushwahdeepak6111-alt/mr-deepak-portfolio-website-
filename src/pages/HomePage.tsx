@@ -17,6 +17,7 @@ interface HomePageProps {
   onOpenCaseStudy: (project: Project) => void;
   onNavigate: (page: string) => void;
   onOpenQuoteModal: () => void;
+  onOpenSeoEngine?: () => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
@@ -24,6 +25,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenCaseStudy,
   onNavigate,
   onOpenQuoteModal: _onOpenQuoteModal,
+  onOpenSeoEngine,
 }) => {
   const scrollToContact = () => {
     const el = document.getElementById('contact-form');
@@ -107,6 +109,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           onViewAllServices={() => onNavigate('services')}
+          onOpenSeoEngine={onOpenSeoEngine}
           embedded
         />
       </SectionIsland>

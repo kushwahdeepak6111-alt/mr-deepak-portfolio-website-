@@ -20,6 +20,7 @@ import { SERVICES } from '../data/services';
 interface ServicesPageProps {
   onDiscussProject: (serviceTitle: string) => void;
   onOpenQuoteModal: () => void;
+  onOpenSeoEngine?: () => void;
 }
 
 const ICON_MAP: Record<string, React.ElementType> = {
@@ -40,6 +41,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 export const ServicesPage: React.FC<ServicesPageProps> = ({
   onDiscussProject,
   onOpenQuoteModal,
+  onOpenSeoEngine,
 }) => {
   return (
     <div className="pt-32 pb-24 min-h-screen">
@@ -56,6 +58,51 @@ export const ServicesPage: React.FC<ServicesPageProps> = ({
           <p className="mt-4 text-base sm:text-lg text-neutral-300 font-normal leading-relaxed">
             From bespoke architectural design to high-throughput web engineering, <strong className="text-white">Mr Deepak</strong> delivers comprehensive digital solutions with zero compromises on performance or craft.
           </p>
+        </div>
+
+        {/* Featured Interactive SEO & Search Engine Optimization Showcase Card */}
+        <div className="mb-14 p-6 sm:p-8 rounded-2xl bg-gradient-to-br from-neutral-900/90 via-[#0d1620]/90 to-neutral-900/90 border border-cyan-500/40 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-xs font-mono mb-3">
+                <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="font-semibold uppercase tracking-wider">Featured Tool · SEO Search Engine Suite</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-display font-bold text-white tracking-tight">
+                Search Engine Optimization &amp; Live SERP Simulator
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm text-neutral-300 font-sans leading-relaxed">
+                Experience how your business ranks on Google Search. Test title tag pixel gauges, meta description limits, Schema.org rich star ratings, and keyword competition rankings in real-time.
+              </p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-xs font-mono text-neutral-400">
+                <span className="px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300">
+                  ✓ Desktop &amp; Mobile SERP Previews
+                </span>
+                <span className="px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300">
+                  ✓ Schema.org JSON-LD Generator
+                </span>
+                <span className="px-2.5 py-1 rounded-md bg-neutral-900 border border-neutral-800 text-neutral-300">
+                  ✓ Core Web Vitals Audit
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
+              {onOpenSeoEngine && (
+                <button
+                  type="button"
+                  onClick={onOpenSeoEngine}
+                  className="px-6 py-3.5 bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-black font-semibold text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-cyan-500/25 active:scale-95 flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap"
+                >
+                  <TrendingUp className="w-4 h-4 text-black" />
+                  <span>Launch SEO Search Engine</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* 12 Services Bento Grid */}

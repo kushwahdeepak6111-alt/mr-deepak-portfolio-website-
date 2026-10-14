@@ -13,6 +13,8 @@ import { LegalPage } from './pages/LegalPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { ProjectModal } from './components/ui/ProjectModal';
 import { QuoteCalculatorModal } from './components/ui/QuoteCalculatorModal';
+import { SeoSearchEngineModal } from './components/ui/SeoSearchEngineModal';
+import { SiteSearchModal } from './components/ui/SiteSearchModal';
 import { NetworkStatusBanner } from './components/ui/NetworkStatusBanner';
 import { NotificationPermissionBanner } from './components/ui/NotificationPermissionBanner';
 import { BackgroundLayer } from './components/layout/BackgroundLayer';
@@ -25,6 +27,8 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<string>('home');
   const [activeCaseStudy, setActiveCaseStudy] = useState<Project | null>(null);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState<boolean>(false);
+  const [isSeoEngineOpen, setIsSeoEngineOpen] = useState<boolean>(false);
+  const [isSiteSearchOpen, setIsSiteSearchOpen] = useState<boolean>(false);
 
   // Background Theme State with LocalStorage Persistence
   const [bgTheme, setBgTheme] = useState<BackgroundTheme>(() => {
@@ -157,12 +161,27 @@ export default function App() {
     }, 380);
   };
 
-  // Keyboard shortcut for Website Refresh: Press 'R' when not typing
+  // Keyboard shortcut: Cmd+K / Ctrl+K / '/' for Search Engine; 'R' for Website Refresh
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const activeTag = (document.activeElement?.tagName || '').toUpperCase();
-      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) ||
+      const isInput =
+        ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag) ||
         (document.activeElement as HTMLElement)?.isContentEditable;
+
+      // Cmd+K or Ctrl+K to toggle Search Engine modal
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setIsSiteSearchOpen((prev) => !prev);
+        return;
+      }
+
+      // '/' to open Search Engine when not in input
+      if (!isInput && e.key === '/') {
+        e.preventDefault();
+        setIsSiteSearchOpen(true);
+        return;
+      }
 
       if (!isInput && (e.key === 'r' || e.key === 'R') && !e.ctrlKey && !e.metaKey && !e.altKey) {
         e.preventDefault();
@@ -231,6 +250,8 @@ export default function App() {
         currentPage={currentPage}
         onNavigate={navigateTo}
         onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+        onOpenSearch={() => setIsSiteSearchOpen(true)}
+        onOpenSeoEngine={() => setIsSeoEngineOpen(true)}
         bgTheme={bgTheme}
         onToggleDarkTheme={() => {
           handleSelectBgTheme(bgTheme === 'dark-theme' ? 'solar-system' : 'dark-theme');
@@ -254,6 +275,7 @@ export default function App() {
               onOpenCaseStudy={(p) => setActiveCaseStudy(p)}
               onNavigate={navigateTo}
               onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+              onOpenSeoEngine={() => setIsSeoEngineOpen(true)}
             />
           )}
 
@@ -276,6 +298,7 @@ export default function App() {
                 navigateTo('contact');
               }}
               onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+              onOpenSeoEngine={() => setIsSeoEngineOpen(true)}
             />
           )}
 
@@ -338,6 +361,8 @@ export default function App() {
       <Footer
         onNavigate={navigateTo}
         onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
+        onOpenSearch={() => setIsSiteSearchOpen(true)}
+        onOpenSeoEngine={() => setIsSeoEngineOpen(true)}
         onRefresh={handleWebsiteRefresh}
         isRefreshing={isRefreshing}
       />
@@ -354,6 +379,23 @@ export default function App() {
         isOpen={isQuoteModalOpen}
         onClose={() => setIsQuoteModalOpen(false)}
         onApplyScopeToContact={handleApplyScope}
+      />
+
+      {/* Interactive SEO & Search Engine Optimization Suite Modal */}
+      <SeoSearchEngineModal
+        isOpen={isSeoEngineOpen}
+        onClose={() => setIsSeoEngineOpen(false)}
+        onApplyToContact={handleApplyScope}
+      />
+
+      {/* Global Website Search Engine & Command Palette Modal (Cmd+K) */}
+      <SiteSearchModal
+        isOpen={isSiteSearchOpen}
+        onClose={() => setIsSiteSearchOpen(false)}
+        onNavigate={navigateTo}
+        onOpenCaseStudy={(p) => setActiveCaseStudy(p)}
+        onOpenSeoEngine={() => setIsSeoEngineOpen(true)}
+        onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
       />
 
       {/* Persistent Website Refresh & Quick Action Floating Button */}

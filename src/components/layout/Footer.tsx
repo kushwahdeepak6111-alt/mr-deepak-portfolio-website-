@@ -1,15 +1,24 @@
 import React from 'react';
-import { ArrowUpRight, Mail, Phone, MessageSquare, ShieldCheck, ArrowRight, MapPin, RotateCw } from 'lucide-react';
+import { ArrowUpRight, Mail, Phone, MessageSquare, ShieldCheck, ArrowRight, MapPin, RotateCw, Search, TrendingUp } from 'lucide-react';
 import { STUDIO_LOCATION } from '../../data/location';
 
 interface FooterProps {
   onNavigate: (page: string) => void;
   onOpenQuoteModal: () => void;
+  onOpenSearch?: () => void;
+  onOpenSeoEngine?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenQuoteModal, onRefresh, isRefreshing }) => {
+export const Footer: React.FC<FooterProps> = ({
+  onNavigate,
+  onOpenQuoteModal,
+  onOpenSearch,
+  onOpenSeoEngine,
+  onRefresh,
+  isRefreshing,
+}) => {
   return (
     <footer className="relative bg-[#050608] border-t border-neutral-800/80 pt-20 pb-12 overflow-hidden">
       {/* Background ambient lighting */}
@@ -133,6 +142,28 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate, onOpenQuoteModal, on
                   Investment & Pricing
                 </button>
               </li>
+              {onOpenSeoEngine && (
+                <li>
+                  <button
+                    onClick={onOpenSeoEngine}
+                    className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>SEO Search Engine</span>
+                  </button>
+                </li>
+              )}
+              {onOpenSearch && (
+                <li>
+                  <button
+                    onClick={onOpenSearch}
+                    className="text-neutral-400 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Search className="w-3.5 h-3.5 text-neutral-500" />
+                    <span>Search Engine (⌘K)</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

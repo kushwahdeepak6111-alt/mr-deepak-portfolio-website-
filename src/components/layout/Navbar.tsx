@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, X, ArrowUpRight, ShieldCheck, Moon, Sun, Phone, MessageSquare, Palette, ChevronDown, Check, Sparkles, Grid, RotateCw } from 'lucide-react';
+import { Menu, X, ArrowUpRight, ShieldCheck, Moon, Sun, Phone, MessageSquare, Palette, ChevronDown, Check, Sparkles, Grid, RotateCw, Search, TrendingUp } from 'lucide-react';
 import { BackgroundTheme } from '../../types';
 import { THEME_OPTIONS } from '../ui/BackgroundSwitcher';
 
@@ -7,6 +7,8 @@ interface NavbarProps {
   currentPage: string;
   onNavigate: (page: string) => void;
   onOpenQuoteModal: () => void;
+  onOpenSearch?: () => void;
+  onOpenSeoEngine?: () => void;
   bgTheme?: BackgroundTheme;
   onToggleDarkTheme?: () => void;
   onSelectBgTheme?: (theme: BackgroundTheme) => void;
@@ -30,6 +32,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentPage,
   onNavigate,
   onOpenQuoteModal,
+  onOpenSearch,
+  onOpenSeoEngine,
   bgTheme,
   onToggleDarkTheme,
   onSelectBgTheme,
@@ -111,15 +115,12 @@ export const Navbar: React.FC<NavbarProps> = ({
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            {/* Zone 1: Single text element wordmark (Studio removed) */}
+            {/* Zone 1: Pure typographic wordmark (icon removed from top left) */}
             <button
               onClick={() => handleNavClick('home')}
-              className="text-left group flex items-center gap-2.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-sm cursor-pointer active:scale-95 transition-transform duration-100"
+              className="text-left group flex items-center focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 rounded-sm cursor-pointer active:scale-95 transition-transform duration-100"
               aria-label="Mr Deepak Home"
             >
-              <div className="relative flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/30 group-hover:border-cyan-400/60 transition-colors duration-100">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 group-hover:scale-125 transition-transform duration-100 shadow-[0_0_10px_rgba(56,189,248,0.8)]" />
-              </div>
               <div className="flex flex-col">
                 <span className="font-display text-lg sm:text-xl font-extrabold tracking-tight text-white group-hover:text-cyan-200 transition-colors duration-100 leading-none flex items-center gap-1.5">
                   MR <span className="text-gradient-cyan">DEEPAK</span>
@@ -300,6 +301,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
               )}
 
+              {/* Global Search Engine Quick Action (Cmd+K) */}
+              {onOpenSearch && (
+                <button
+                  type="button"
+                  onClick={onOpenSearch}
+                  className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-md border text-xs font-mono transition-all duration-100 active:scale-95 cursor-pointer bg-neutral-900/90 border-neutral-800 text-neutral-300 hover:text-white hover:border-cyan-500/50 hover:bg-neutral-800 shadow-sm"
+                  title="Search Website, Services & Pricing (Press ⌘K or /)"
+                  aria-label="Open Website Search Engine"
+                >
+                  <Search className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="hidden sm:inline font-semibold">Search</span>
+                  <kbd className="hidden lg:inline text-[9px] font-mono text-neutral-400 px-1 py-0.2 rounded bg-neutral-800 border border-neutral-700 ml-0.5">⌘K</kbd>
+                </button>
+              )}
+
+              {/* Dedicated SEO Search Engine Tool Action */}
+              {onOpenSeoEngine && (
+                <button
+                  type="button"
+                  onClick={onOpenSeoEngine}
+                  className="hidden md:inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-md border text-xs font-mono transition-all duration-100 active:scale-95 cursor-pointer bg-cyan-950/40 border-cyan-800/80 text-cyan-200 hover:bg-cyan-900/60 hover:border-cyan-400 hover:text-white shadow-sm"
+                  title="Launch Google SERP Simulator & SEO Audit Engine"
+                  aria-label="Launch SEO Search Engine"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="font-semibold">SEO Engine</span>
+                </button>
+              )}
+
               {/* Direct Call Quick Action */}
               <a
                 href="tel:+919343795715"
@@ -357,15 +387,12 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* Drawer Top Header with Close Button */}
               <div className="flex items-center justify-between pb-3.5 border-b border-neutral-800/80">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-500/20 via-indigo-500/20 to-purple-500/20 border border-cyan-400/40 flex items-center justify-center">
-                    <span className="text-cyan-300 font-mono font-bold text-xs">MD</span>
-                  </div>
                   <div>
                     <div className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                       MR DEEPAK
                     </div>
                     <div className="text-[10px] font-mono text-neutral-400">
-                      Studio Navigation & Portal
+                      Studio Navigation &amp; Portal
                     </div>
                   </div>
                 </div>
@@ -399,6 +426,42 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </button>
                 );
               })}
+
+              {/* Mobile Website Search Engine */}
+              {onOpenSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenSearch();
+                  }}
+                  className="text-left text-xl font-display font-medium transition-colors py-1.5 flex items-center gap-2.5 text-neutral-300 hover:text-white"
+                >
+                  <Search className="w-5 h-5 text-cyan-400" />
+                  <span>Search Engine</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-neutral-900 border border-neutral-700 text-neutral-300 ml-auto">
+                    ⌘K
+                  </span>
+                </button>
+              )}
+
+              {/* Mobile SEO Search Engine Tool */}
+              {onOpenSeoEngine && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenSeoEngine();
+                  }}
+                  className="text-left text-xl font-display font-medium transition-colors py-1.5 flex items-center gap-2.5 text-cyan-300 hover:text-white"
+                >
+                  <TrendingUp className="w-5 h-5 text-cyan-400" />
+                  <span>SEO Search Engine</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 ml-auto">
+                    Tool
+                  </span>
+                </button>
+              )}
 
               {/* Mobile Admin Link */}
               <button

@@ -5,6 +5,7 @@ import { SERVICES } from '../../data/services';
 interface ServicesPreviewProps {
   onDiscussProject: (serviceTitle: string) => void;
   onViewAllServices: () => void;
+  onOpenSeoEngine?: () => void;
   embedded?: boolean;
 }
 
@@ -20,6 +21,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
 export const ServicesPreview: React.FC<ServicesPreviewProps> = ({
   onDiscussProject,
   onViewAllServices,
+  onOpenSeoEngine,
   embedded = false,
 }) => {
   // Take 6 featured services for homepage preview
@@ -103,6 +105,33 @@ export const ServicesPreview: React.FC<ServicesPreviewProps> = ({
             );
           })}
         </div>
+
+        {/* Interactive SEO Search Engine Quick Tool Callout */}
+        {onOpenSeoEngine && (
+          <div className="mt-8 p-4 sm:p-5 rounded-xl bg-gradient-to-r from-neutral-900/80 via-[#0a141d]/80 to-neutral-900/80 border border-cyan-500/30 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3 text-left">
+              <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shrink-0">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="text-xs sm:text-sm font-bold text-white font-display">
+                  SEO Search Engine &amp; SERP Simulator
+                </div>
+                <div className="text-[11px] text-neutral-400 font-sans">
+                  Preview how your brand appears on Google Search, test meta pixel limits, and audit rich snippet ratings.
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenSeoEngine}
+              className="px-4 py-2 rounded-lg bg-cyan-500/20 border border-cyan-400/50 hover:bg-cyan-500/30 text-cyan-300 hover:text-white text-xs font-mono font-semibold transition-all shrink-0 cursor-pointer flex items-center gap-2"
+            >
+              <span>Test SEO Search Engine</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
